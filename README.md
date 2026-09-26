@@ -1,1 +1,0 @@
-# Script-steal-an-egg

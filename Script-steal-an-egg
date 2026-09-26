@@ -1,0 +1,298 @@
+-- LocalScript (copie e cole em qualquer lugar)
+-- Fly automático até posição salva
+
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local savedPosition = nil
+local isFlying = false
+local flySpeed = 25 -- Velocidade do fly (quanto menor, mais lento)
+local isGuiVisible = true
+
+-- Criar GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FlyPositionGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 380, 0, 250)
+mainFrame.Position = UDim2.new(0.5, -190, 0.5, -125)
+mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+mainFrame.BackgroundTransparency = 0.08
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 18)
+mainCorner.Parent = mainFrame
+
+local shadow = Instance.new("ImageLabel")
+shadow.Size = UDim2.new(1, 16, 1, 16)
+shadow.Position = UDim2.new(0, -8, 0, -8)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://131604521"
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+shadow.ImageTransparency = 0.5
+shadow.ZIndex = -1
+shadow.Parent = mainFrame
+
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 52)
+topBar.BackgroundColor3 = Color3.fromRGB(29, 35, 48)
+topBar.BorderSizePixel = 0
+topBar.Parent = mainFrame
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 18)
+topCorner.Parent = topBar
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -20, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.Text = "Fly Position Saver"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 24
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 32, 0, 32)
+closeButton.Position = UDim2.new(1, -42, 0.5, -16)
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 84, 84)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 18
+closeButton.BorderSizePixel = 0
+closeButton.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 12)
+closeCorner.Parent = closeButton
+
+closeButton.MouseButton1Click:Connect(function()
+    screenGui.Enabled = false
+    isGuiVisible = false
+end)
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -30, 0, 35)
+statusLabel.Position = UDim2.new(0, 15, 0, 70)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Text = "Nenhuma posição salva"
+statusLabel.TextColor3 = Color3.fromRGB(200, 210, 225)
+statusLabel.TextSize = 14
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.TextWrapped = true
+statusLabel.Parent = mainFrame
+
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, -30, 0, 25)
+speedLabel.Position = UDim2.new(0, 15, 0, 108)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.Text = "Velocidade: " .. flySpeed
+speedLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+speedLabel.TextSize = 12
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = mainFrame
+
+local saveButton = Instance.new("TextButton")
+saveButton.Size = UDim2.new(0, 100, 0, 42)
+saveButton.Position = UDim2.new(0, 15, 0, 145)
+saveButton.BackgroundColor3 = Color3.fromRGB(80, 166, 255)
+saveButton.Text = "Salvar (F)"
+saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+saveButton.Font = Enum.Font.GothamBold
+saveButton.TextSize = 16
+saveButton.BorderSizePixel = 0
+saveButton.Parent = mainFrame
+
+local saveCorner = Instance.new("UICorner")
+saveCorner.CornerRadius = UDim.new(0, 12)
+saveCorner.Parent = saveButton
+
+local flyButton = Instance.new("TextButton")
+flyButton.Size = UDim2.new(0, 100, 0, 42)
+flyButton.Position = UDim2.new(0.5, -50, 0, 145)
+flyButton.BackgroundColor3 = Color3.fromRGB(81, 214, 133)
+flyButton.Text = "Voar (G)"
+flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyButton.Font = Enum.Font.GothamBold
+flyButton.TextSize = 16
+flyButton.BorderSizePixel = 0
+flyButton.Parent = mainFrame
+
+local flyCorner = Instance.new("UICorner")
+flyCorner.CornerRadius = UDim.new(0, 12)
+flyCorner.Parent = flyButton
+
+local stopButton = Instance.new("TextButton")
+stopButton.Size = UDim2.new(0, 100, 0, 42)
+stopButton.Position = UDim2.new(1, -115, 0, 145)
+stopButton.BackgroundColor3 = Color3.fromRGB(255, 150, 100)
+stopButton.Text = "Parar (H)"
+stopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+stopButton.Font = Enum.Font.GothamBold
+stopButton.TextSize = 16
+stopButton.BorderSizePixel = 0
+stopButton.Parent = mainFrame
+
+local stopCorner = Instance.new("UICorner")
+stopCorner.CornerRadius = UDim.new(0, 12)
+stopCorner.Parent = stopButton
+
+local speedUpButton = Instance.new("TextButton")
+speedUpButton.Size = UDim2.new(0, 80, 0, 35)
+speedUpButton.Position = UDim2.new(0, 15, 1, -52)
+speedUpButton.BackgroundColor3 = Color3.fromRGB(46, 52, 64)
+speedUpButton.Text = "+ Velocidade"
+speedUpButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedUpButton.Font = Enum.Font.GothamMedium
+speedUpButton.TextSize = 12
+speedUpButton.BorderSizePixel = 0
+speedUpButton.Parent = mainFrame
+
+local speedUpCorner = Instance.new("UICorner")
+speedUpCorner.CornerRadius = UDim.new(0, 10)
+speedUpCorner.Parent = speedUpButton
+
+local speedDownButton = Instance.new("TextButton")
+speedDownButton.Size = UDim2.new(0, 80, 0, 35)
+speedDownButton.Position = UDim2.new(1, -95, 1, -52)
+speedDownButton.BackgroundColor3 = Color3.fromRGB(46, 52, 64)
+speedDownButton.Text = "- Velocidade"
+speedDownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedDownButton.Font = Enum.Font.GothamMedium
+speedDownButton.TextSize = 12
+speedDownButton.BorderSizePixel = 0
+speedDownButton.Parent = mainFrame
+
+local speedDownCorner = Instance.new("UICorner")
+speedDownCorner.CornerRadius = UDim.new(0, 10)
+speedDownCorner.Parent = speedDownButton
+
+-- Funções
+local function savePosition()
+    local character = player.Character
+    if not character then return end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+    
+    savedPosition = rootPart.Position
+    statusLabel.Text = "✓ Posição salva em: " .. tostring(Vector3.new(
+        math.floor(savedPosition.X),
+        math.floor(savedPosition.Y),
+        math.floor(savedPosition.Z)
+    ))
+    statusLabel.TextColor3 = Color3.fromRGB(81, 214, 133)
+end
+
+local function startFlying()
+    if not savedPosition then
+        statusLabel.Text = "✗ Salve uma posição antes"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return
+    end
+    
+    isFlying = true
+    statusLabel.Text = "🛫 Voando para a posição..."
+    statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+end
+
+local function stopFlying()
+    isFlying = false
+    statusLabel.Text = "✓ Voo parado"
+    statusLabel.TextColor3 = Color3.fromRGB(200, 210, 225)
+end
+
+-- Conexões dos botões
+saveButton.MouseButton1Click:Connect(savePosition)
+flyButton.MouseButton1Click:Connect(startFlying)
+stopButton.MouseButton1Click:Connect(stopFlying)
+
+speedUpButton.MouseButton1Click:Connect(function()
+    flySpeed = math.min(flySpeed + 5, 100)
+    speedLabel.Text = "Velocidade: " .. flySpeed
+end)
+
+speedDownButton.MouseButton1Click:Connect(function()
+    flySpeed = math.max(flySpeed - 5, 5)
+    speedLabel.Text = "Velocidade: " .. flySpeed
+end)
+
+-- Teclas de atalho
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.F then
+        savePosition()
+    elseif input.KeyCode == Enum.KeyCode.G then
+        startFlying()
+    elseif input.KeyCode == Enum.KeyCode.H then
+        stopFlying()
+    elseif input.KeyCode == Enum.KeyCode.K then
+        isGuiVisible = not isGuiVisible
+        screenGui.Enabled = isGuiVisible
+    end
+end)
+
+-- Loop do fly automático
+RunService.RenderStepped:Connect(function()
+    if not isFlying then return end
+    
+    local character = player.Character
+    if not character then
+        stopFlying()
+        return
+    end
+    
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then
+        stopFlying()
+        return
+    end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.Health <= 0 then
+        stopFlying()
+        return
+    end
+    
+    if not savedPosition then
+        stopFlying()
+        return
+    end
+    
+    -- Distância até o alvo
+    local distance = (rootPart.Position - savedPosition).Magnitude
+    
+    if distance < 5 then
+        -- Chegou ao destino
+        isFlying = false
+        statusLabel.Text = "✓ Chegou ao destino!"
+        statusLabel.TextColor3 = Color3.fromRGB(81, 214, 133)
+        return
+    end
+    
+    -- Direção para o alvo
+    local direction = (savedPosition - rootPart.Position).Unit
+    
+    -- Move o personagem na direção do alvo com velocidade constante
+    rootPart.CFrame = rootPart.CFrame + direction * (flySpeed / 60)
+    
+    -- Mantém o personagem em pé
+    if humanoid then
+        humanoid:Move(direction)
+    end
+end)
